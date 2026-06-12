@@ -286,6 +286,7 @@
     }
 
     tbody td:nth-child(2) { text-align: left; }
+    tbody td:nth-child(3) { text-align: left; }
 
     .status-badge {
       display: inline-flex;
@@ -439,13 +440,23 @@
       <div id="active-chips" class="flex flex-wrap gap-2"></div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       <!-- Busca -->
       <div>
         <label class="filter-label" for="card-search">Número do Cartão</label>
         <div style="position:relative">
           <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted)" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input type="text" id="card-search" placeholder="Buscar por número…"
+            class="filter-input" style="padding-left:2rem">
+        </div>
+      </div>
+
+      <!-- Em posse de -->
+      <div>
+        <label class="filter-label" for="holder-search">Em posse de</label>
+        <div style="position:relative">
+          <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted)" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+          <input type="text" id="holder-search" placeholder="Buscar por nome…"
             class="filter-input" style="padding-left:2rem">
         </div>
       </div>
@@ -507,6 +518,7 @@
         <thead>
           <tr>
             <th>Número do Cartão</th>
+            <th style="text-align:left">Em posse de</th>
             <th style="text-align:left">Situação</th>
             <th>Saldo Atual</th>
             <th>1ª Quinzena</th>
@@ -517,7 +529,7 @@
         </thead>
         <tbody id="cards-table-body">
           <tr>
-            <td colspan="7" style="text-align:center;padding:3rem;color:var(--text-muted)">Carregando dados…</td>
+            <td colspan="8" style="text-align:center;padding:3rem;color:var(--text-muted)">Carregando dados…</td>
           </tr>
         </tbody>
       </table>
@@ -576,7 +588,7 @@
     const pageData = data.slice(start, start + itemsPerPage);
 
     if (!pageData.length) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--text-muted)">Nenhum cartão encontrado.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:3rem;color:var(--text-muted)">Nenhum cartão encontrado.</td></tr>`;
       document.getElementById('showing-count').textContent = '0';
       updatePagination(data.length, page);
       return;
@@ -587,6 +599,7 @@
       return `
         <tr>
           <td>${formatCardNumber(card['Cartão'])}</td>
+          <td>${card['Em posse de'] || '-'}</td>
           <td><span class="status-badge ${isActive ? 'status-desbloqueado' : 'status-bloqueado'}">${isActive ? 'Desbloqueado' : 'Bloqueado'}</span></td>
           <td class="val-balance">${formatCurrency(card['Saldo Atual'])}</td>
           <td class="val-recharge">${formatCurrency(card['Recarga Primeira Quinzena'])}</td>
@@ -612,6 +625,7 @@
     const chips = document.getElementById('active-chips');
     const filters = [
       { id: 'card-search',     label: () => { const v = document.getElementById('card-search').value.trim(); return v ? `Cartão: ${v}` : null; } },
+      { id: 'holder-search',   label: () => { const v = document.getElementById('holder-search').value.trim(); return v ? `Em posse de: ${v}` : null; } },
       { id: 'status-filter',   label: () => { const v = document.getElementById('status-filter').value; return v !== 'Todos' ? v.replace('Ativo ', '') : null; } },
       { id: 'balance-filter',  label: () => { const v = document.getElementById('balance-filter').value; return v !== 'Todos' ? v : null; } },
       { id: 'recharge-filter', label: () => { const v = document.getElementById('recharge-filter').value; return v !== 'Todos' ? v : null; } },
@@ -631,12 +645,14 @@
 
   function applyFilters() {
     const cardSearch     = document.getElementById('card-search').value.trim();
+    const holderSearch   = document.getElementById('holder-search').value.trim().toLowerCase();
     const statusFilter   = document.getElementById('status-filter').value;
     const balanceFilter  = document.getElementById('balance-filter').value;
     const rechargeFilter = document.getElementById('recharge-filter').value;
 
     filteredData = allCardsData.filter(card => {
       if (cardSearch && !String(card['Cartão']).includes(cardSearch)) return false;
+      if (holderSearch && !String(card['Em posse de'] || '').toLowerCase().includes(holderSearch)) return false;
       if (statusFilter !== 'Todos' && card['Situação Do Cartão'] !== statusFilter) return false;
       const balance = Number(card['Saldo Atual'] || 0);
       if (balanceFilter === 'Com Saldo' && balance <= 0) return false;
@@ -656,6 +672,7 @@
 
   function clearFilters() {
     document.getElementById('card-search').value    = '';
+    document.getElementById('holder-search').value  = '';
     document.getElementById('status-filter').value  = 'Todos';
     document.getElementById('balance-filter').value = 'Todos';
     document.getElementById('recharge-filter').value= 'Todos';
@@ -676,11 +693,12 @@
     } catch (err) {
       console.error(err);
       document.getElementById('cards-table-body').innerHTML =
-        `<tr><td colspan="7" style="text-align:center;padding:3rem;color:#f87171">Erro ao carregar os dados. Verifique se o arquivo data.json está disponível.</td></tr>`;
+        `<tr><td colspan="8" style="text-align:center;padding:3rem;color:#f87171">Erro ao carregar os dados. Verifique se o arquivo data.json está disponível.</td></tr>`;
     }
   }
 
   document.getElementById('card-search').addEventListener('input', applyFilters);
+  document.getElementById('holder-search').addEventListener('input', applyFilters);
   document.getElementById('status-filter').addEventListener('change', applyFilters);
   document.getElementById('balance-filter').addEventListener('change', applyFilters);
   document.getElementById('recharge-filter').addEventListener('change', applyFilters);
