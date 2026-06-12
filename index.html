@@ -326,6 +326,120 @@
     .val-extra    { color: #60a5fa; }
     .val-total    { color: #a78bfa; font-weight: 600; }
 
+
+    .card-link {
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      padding: 0;
+      text-align: left;
+      transition: color 0.15s;
+    }
+
+    .card-link:hover {
+      color: var(--teal-light);
+      text-decoration: underline;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.72);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-hover);
+      border-radius: 18px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.45);
+      overflow: hidden;
+      animation: fadeIn 0.2s ease both;
+    }
+
+    .modal-header {
+      padding: 1.1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(36,151,136,0.16), rgba(90,74,199,0.16));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .modal-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface-3);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .modal-close:hover {
+      color: var(--text-primary);
+      border-color: var(--border-hover);
+    }
+
+    .modal-body {
+      padding: 1.25rem;
+      display: grid;
+      gap: 12px;
+    }
+
+    .modal-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    .modal-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .modal-label {
+      color: var(--text-muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .modal-value {
+      color: var(--text-primary);
+      font-size: 14px;
+      text-align: right;
+      font-weight: 500;
+    }
+
     /* Pagination */
     .pagination {
       padding: 1rem 1.5rem;
@@ -555,6 +669,39 @@
 
 </div>
 
+  <!-- Modal Detalhes do Cartão -->
+  <div id="card-modal" class="modal-overlay" onclick="closeCardModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">Detalhes do Cartão</div>
+        <button class="modal-close" onclick="closeCardModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-row">
+          <span class="modal-label">Cartão</span>
+          <span class="modal-value" id="modal-card-number">-</span>
+        </div>
+        <div class="modal-row">
+          <span class="modal-label">Em posse de</span>
+          <span class="modal-value" id="modal-holder">-</span>
+        </div>
+        <div class="modal-row">
+          <span class="modal-label">Situação</span>
+          <span class="modal-value" id="modal-status">-</span>
+        </div>
+        <div class="modal-row">
+          <span class="modal-label">Saldo Atual</span>
+          <span class="modal-value" id="modal-balance">-</span>
+        </div>
+        <div class="modal-row">
+          <span class="modal-label">Total Recarregado</span>
+          <span class="modal-value" id="modal-recharged">-</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
 <script>
   let allCardsData = [];
   let filteredData = [];
@@ -568,6 +715,31 @@
   function formatCardNumber(cardNumber) {
     return String(cardNumber).replace(/(\d{4})(?=\d)/g, '$1 ');
   }
+
+
+  function openCardModal(cardNumber) {
+    const card = allCardsData.find(c => String(c['Cartão']) === String(cardNumber));
+    if (!card) return;
+
+    document.getElementById('modal-card-number').textContent = formatCardNumber(card['Cartão']);
+    document.getElementById('modal-holder').textContent = card['Em posse de'] || '-';
+    document.getElementById('modal-status').textContent = card['Situação Do Cartão'] || '-';
+    document.getElementById('modal-balance').textContent = formatCurrency(card['Saldo Atual']);
+    document.getElementById('modal-recharged').textContent = formatCurrency(card['Total Recarregado no Mês']);
+
+    document.getElementById('card-modal').classList.add('active');
+  }
+
+  function closeCardModal(event) {
+    if (event && event.target.id !== 'card-modal') return;
+    document.getElementById('card-modal').classList.remove('active');
+  }
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      document.getElementById('card-modal').classList.remove('active');
+    }
+  });
 
   function updateSummaryCards(data) {
     const totalBalance   = data.reduce((s, c) => s + Number(c['Saldo Atual'] || 0), 0);
@@ -597,7 +769,11 @@
       const isActive = card['Situação Do Cartão'] === 'Ativo Desbloqueado';
       return `
         <tr>
-          <td>${formatCardNumber(card['Cartão'])}</td>
+          <td>
+            <button class="card-link" onclick="openCardModal('${String(card['Cartão']).replace(/'/g, "\\'")}')">
+              ${formatCardNumber(card['Cartão'])}
+            </button>
+          </td>
           <td><span class="status-badge ${isActive ? 'status-desbloqueado' : 'status-bloqueado'}">${isActive ? 'Desbloqueado' : 'Bloqueado'}</span></td>
           <td class="val-balance">${formatCurrency(card['Saldo Atual'])}</td>
           <td class="val-recharge">${formatCurrency(card['Recarga Primeira Quinzena'])}</td>
