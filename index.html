@@ -514,7 +514,7 @@
       <div class="logo-ring">💳</div>
       <div>
         <h1 class="text-lg font-semibold text-white leading-tight">Cartões Combustível</h1>
-        <p class="text-xs text-teal-400 mt-0.5" style="color:#2db8a7">Consulta de Saldo</p>
+        <p class="text-xs text-teal-400 mt-0.5" style="color:#2db8a7">Consulta de Saldo • Maior saldo primeiro</p>
       </div>
     </div>
     <div class="flex items-center gap-2 text-sm" style="color:var(--text-muted)">
@@ -554,7 +554,7 @@
       <div id="active-chips" class="flex flex-wrap gap-2"></div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
       <!-- Busca -->
       <div>
         <label class="filter-label" for="card-search">Número do Cartão</label>
@@ -571,6 +571,16 @@
         <div style="position:relative">
           <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted)" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
           <input type="text" id="holder-search" placeholder="Buscar por nome…"
+            class="filter-input" style="padding-left:2rem">
+        </div>
+      </div>
+
+      <!-- Projeto -->
+      <div>
+        <label class="filter-label" for="project-search">Projeto</label>
+        <div style="position:relative">
+          <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted)" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+          <input type="text" id="project-search" placeholder="Buscar por projeto…"
             class="filter-input" style="padding-left:2rem">
         </div>
       </div>
@@ -632,6 +642,7 @@
         <thead>
           <tr>
             <th>Número do Cartão</th>
+            <th style="text-align:left">Projeto</th>
             <th style="text-align:left">Situação</th>
             <th>Saldo Atual</th>
             <th>1ª Quinzena</th>
@@ -642,7 +653,7 @@
         </thead>
         <tbody id="cards-table-body">
           <tr>
-            <td colspan="7" style="text-align:center;padding:3rem;color:var(--text-muted)">Carregando dados…</td>
+            <td colspan="8" style="text-align:center;padding:3rem;color:var(--text-muted)">Carregando dados…</td>
           </tr>
         </tbody>
       </table>
@@ -680,6 +691,10 @@
         <div class="modal-row">
           <span class="modal-label">Cartão</span>
           <span class="modal-value" id="modal-card-number">-</span>
+        </div>
+        <div class="modal-row">
+          <span class="modal-label">Projeto</span>
+          <span class="modal-value" id="modal-project">-</span>
         </div>
         <div class="modal-row">
           <span class="modal-label">Em posse de</span>
@@ -722,6 +737,7 @@
     if (!card) return;
 
     document.getElementById('modal-card-number').textContent = formatCardNumber(card['Cartão']);
+    document.getElementById('modal-project').textContent = card['Projeto'] || '-';
     document.getElementById('modal-holder').textContent = card['Em posse de'] || '-';
     document.getElementById('modal-status').textContent = card['Situação Do Cartão'] || '-';
     document.getElementById('modal-balance').textContent = formatCurrency(card['Saldo Atual']);
@@ -759,7 +775,7 @@
     const pageData = data.slice(start, start + itemsPerPage);
 
     if (!pageData.length) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--text-muted)">Nenhum cartão encontrado.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:3rem;color:var(--text-muted)">Nenhum cartão encontrado.</td></tr>`;
       document.getElementById('showing-count').textContent = '0';
       updatePagination(data.length, page);
       return;
@@ -774,6 +790,7 @@
               ${formatCardNumber(card['Cartão'])}
             </button>
           </td>
+          <td>${card['Projeto'] || '-'}</td>
           <td><span class="status-badge ${isActive ? 'status-desbloqueado' : 'status-bloqueado'}">${isActive ? 'Desbloqueado' : 'Bloqueado'}</span></td>
           <td class="val-balance">${formatCurrency(card['Saldo Atual'])}</td>
           <td class="val-recharge">${formatCurrency(card['Recarga Primeira Quinzena'])}</td>
@@ -800,6 +817,7 @@
     const filters = [
       { id: 'card-search',     label: () => { const v = document.getElementById('card-search').value.trim(); return v ? `Cartão: ${v}` : null; } },
       { id: 'holder-search',   label: () => { const v = document.getElementById('holder-search').value.trim(); return v ? `Em posse de: ${v}` : null; } },
+      { id: 'project-search',  label: () => { const v = document.getElementById('project-search').value.trim(); return v ? `Projeto: ${v}` : null; } },
       { id: 'status-filter',   label: () => { const v = document.getElementById('status-filter').value; return v !== 'Todos' ? v.replace('Ativo ', '') : null; } },
       { id: 'balance-filter',  label: () => { const v = document.getElementById('balance-filter').value; return v !== 'Todos' ? v : null; } },
       { id: 'recharge-filter', label: () => { const v = document.getElementById('recharge-filter').value; return v !== 'Todos' ? v : null; } },
@@ -820,6 +838,7 @@
   function applyFilters() {
     const cardSearch     = document.getElementById('card-search').value.trim();
     const holderSearch   = document.getElementById('holder-search').value.trim().toLowerCase();
+    const projectSearch  = document.getElementById('project-search').value.trim().toLowerCase();
     const statusFilter   = document.getElementById('status-filter').value;
     const balanceFilter  = document.getElementById('balance-filter').value;
     const rechargeFilter = document.getElementById('recharge-filter').value;
@@ -827,6 +846,7 @@
     filteredData = allCardsData.filter(card => {
       if (cardSearch && !String(card['Cartão']).includes(cardSearch)) return false;
       if (holderSearch && !String(card['Em posse de'] || '').toLowerCase().includes(holderSearch)) return false;
+      if (projectSearch && !String(card['Projeto'] || '').toLowerCase().includes(projectSearch)) return false;
       if (statusFilter !== 'Todos' && card['Situação Do Cartão'] !== statusFilter) return false;
       const balance = Number(card['Saldo Atual'] || 0);
       if (balanceFilter === 'Com Saldo' && balance <= 0) return false;
@@ -847,6 +867,7 @@
   function clearFilters() {
     document.getElementById('card-search').value    = '';
     document.getElementById('holder-search').value  = '';
+    document.getElementById('project-search').value = '';
     document.getElementById('status-filter').value  = 'Todos';
     document.getElementById('balance-filter').value = 'Todos';
     document.getElementById('recharge-filter').value= 'Todos';
@@ -858,6 +879,7 @@
       const response = await fetch(`data.json?v=${Date.now()}`);
       if (!response.ok) throw new Error('Erro ao carregar dados');
       allCardsData = await response.json();
+      allCardsData.sort((a, b) => Number(b['Saldo Atual'] || 0) - Number(a['Saldo Atual'] || 0));
       filteredData = [...allCardsData];
       updateSummaryCards(filteredData);
       renderTable(filteredData, currentPage);
@@ -867,12 +889,13 @@
     } catch (err) {
       console.error(err);
       document.getElementById('cards-table-body').innerHTML =
-        `<tr><td colspan="7" style="text-align:center;padding:3rem;color:#f87171">Erro ao carregar os dados. Verifique se o arquivo data.json está disponível.</td></tr>`;
+        `<tr><td colspan="8" style="text-align:center;padding:3rem;color:#f87171">Erro ao carregar os dados. Verifique se o arquivo data.json está disponível.</td></tr>`;
     }
   }
 
   document.getElementById('card-search').addEventListener('input', applyFilters);
   document.getElementById('holder-search').addEventListener('input', applyFilters);
+  document.getElementById('project-search').addEventListener('input', applyFilters);
   document.getElementById('status-filter').addEventListener('change', applyFilters);
   document.getElementById('balance-filter').addEventListener('change', applyFilters);
   document.getElementById('recharge-filter').addEventListener('change', applyFilters);
