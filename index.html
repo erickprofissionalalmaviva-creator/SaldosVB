@@ -577,11 +577,11 @@
 
       <!-- Projeto -->
       <div>
-        <label class="filter-label" for="project-search">Projeto</label>
-        <div style="position:relative">
-          <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted)" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
-          <input type="text" id="project-search" placeholder="Buscar por projeto…"
-            class="filter-input" style="padding-left:2rem">
+        <label class="filter-label" for="project-filter">Projeto</label>
+        <div class="select-wrapper">
+          <select id="project-filter" class="filter-select">
+            <option value="Todos">Todos os projetos</option>
+          </select>
         </div>
       </div>
 
@@ -817,7 +817,7 @@
     const filters = [
       { id: 'card-search',     label: () => { const v = document.getElementById('card-search').value.trim(); return v ? `Cartão: ${v}` : null; } },
       { id: 'holder-search',   label: () => { const v = document.getElementById('holder-search').value.trim(); return v ? `Em posse de: ${v}` : null; } },
-      { id: 'project-search',  label: () => { const v = document.getElementById('project-search').value.trim(); return v ? `Projeto: ${v}` : null; } },
+      { id: 'project-filter',  label: () => { const v = document.getElementById('project-filter').value.trim(); return v ? `Projeto: ${v}` : null; } },
       { id: 'status-filter',   label: () => { const v = document.getElementById('status-filter').value; return v !== 'Todos' ? v.replace('Ativo ', '') : null; } },
       { id: 'balance-filter',  label: () => { const v = document.getElementById('balance-filter').value; return v !== 'Todos' ? v : null; } },
       { id: 'recharge-filter', label: () => { const v = document.getElementById('recharge-filter').value; return v !== 'Todos' ? v : null; } },
@@ -838,7 +838,7 @@
   function applyFilters() {
     const cardSearch     = document.getElementById('card-search').value.trim();
     const holderSearch   = document.getElementById('holder-search').value.trim().toLowerCase();
-    const projectSearch  = document.getElementById('project-search').value.trim().toLowerCase();
+    const projectFilter   = document.getElementById('project-filter').value;
     const statusFilter   = document.getElementById('status-filter').value;
     const balanceFilter  = document.getElementById('balance-filter').value;
     const rechargeFilter = document.getElementById('recharge-filter').value;
@@ -846,7 +846,7 @@
     filteredData = allCardsData.filter(card => {
       if (cardSearch && !String(card['Cartão']).includes(cardSearch)) return false;
       if (holderSearch && !String(card['Em posse de'] || '').toLowerCase().includes(holderSearch)) return false;
-      if (projectSearch && !String(card['Projeto'] || '').toLowerCase().includes(projectSearch)) return false;
+      if (projectFilter !== 'Todos' && String(card['Projeto'] || '') !== projectFilter) return false;
       if (statusFilter !== 'Todos' && card['Situação Do Cartão'] !== statusFilter) return false;
       const balance = Number(card['Saldo Atual'] || 0);
       if (balanceFilter === 'Com Saldo' && balance <= 0) return false;
@@ -867,11 +867,31 @@
   function clearFilters() {
     document.getElementById('card-search').value    = '';
     document.getElementById('holder-search').value  = '';
-    document.getElementById('project-search').value = '';
+    document.getElementById('project-filter').value = 'Todos';
     document.getElementById('status-filter').value  = 'Todos';
     document.getElementById('balance-filter').value = 'Todos';
     document.getElementById('recharge-filter').value= 'Todos';
     applyFilters();
+  }
+
+
+  function populateProjectFilter(data) {
+    const projectSelect = document.getElementById('project-filter');
+    if (!projectSelect) return;
+
+    const currentValue = projectSelect.value || 'Todos';
+    const projects = [...new Set(
+      data
+        .map(card => String(card['Projeto'] || '').trim())
+        .filter(project => project)
+    )].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+    projectSelect.innerHTML = '<option value="Todos">Todos os projetos</option>' +
+      projects.map(project => `<option value="${project}">${project}</option>`).join('');
+
+    if (projects.includes(currentValue)) {
+      projectSelect.value = currentValue;
+    }
   }
 
   async function init() {
@@ -881,6 +901,7 @@
       allCardsData = await response.json();
       allCardsData.sort((a, b) => Number(b['Saldo Atual'] || 0) - Number(a['Saldo Atual'] || 0));
       filteredData = [...allCardsData];
+      populateProjectFilter(allCardsData);
       updateSummaryCards(filteredData);
       renderTable(filteredData, currentPage);
       const now = new Date();
@@ -895,7 +916,7 @@
 
   document.getElementById('card-search').addEventListener('input', applyFilters);
   document.getElementById('holder-search').addEventListener('input', applyFilters);
-  document.getElementById('project-search').addEventListener('input', applyFilters);
+  document.getElementById('project-filter').addEventListener('change', applyFilters);
   document.getElementById('status-filter').addEventListener('change', applyFilters);
   document.getElementById('balance-filter').addEventListener('change', applyFilters);
   document.getElementById('recharge-filter').addEventListener('change', applyFilters);
