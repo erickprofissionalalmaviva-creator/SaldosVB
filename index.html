@@ -518,7 +518,6 @@
         <thead>
           <tr>
             <th>Número do Cartão</th>
-            <th style="text-align:left">Em posse de</th>
             <th style="text-align:left">Situação</th>
             <th>Saldo Atual</th>
             <th>1ª Quinzena</th>
@@ -529,7 +528,7 @@
         </thead>
         <tbody id="cards-table-body">
           <tr>
-            <td colspan="8" style="text-align:center;padding:3rem;color:var(--text-muted)">Carregando dados…</td>
+            <td colspan="7" style="text-align:center;padding:3rem;color:var(--text-muted)">Carregando dados…</td>
           </tr>
         </tbody>
       </table>
@@ -588,7 +587,7 @@
     const pageData = data.slice(start, start + itemsPerPage);
 
     if (!pageData.length) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:3rem;color:var(--text-muted)">Nenhum cartão encontrado.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--text-muted)">Nenhum cartão encontrado.</td></tr>`;
       document.getElementById('showing-count').textContent = '0';
       updatePagination(data.length, page);
       return;
@@ -599,7 +598,6 @@
       return `
         <tr>
           <td>${formatCardNumber(card['Cartão'])}</td>
-          <td>${card['Em posse de'] || '-'}</td>
           <td><span class="status-badge ${isActive ? 'status-desbloqueado' : 'status-bloqueado'}">${isActive ? 'Desbloqueado' : 'Bloqueado'}</span></td>
           <td class="val-balance">${formatCurrency(card['Saldo Atual'])}</td>
           <td class="val-recharge">${formatCurrency(card['Recarga Primeira Quinzena'])}</td>
@@ -693,7 +691,7 @@
     } catch (err) {
       console.error(err);
       document.getElementById('cards-table-body').innerHTML =
-        `<tr><td colspan="8" style="text-align:center;padding:3rem;color:#f87171">Erro ao carregar os dados. Verifique se o arquivo data.json está disponível.</td></tr>`;
+        `<tr><td colspan="7" style="text-align:center;padding:3rem;color:#f87171">Erro ao carregar os dados. Verifique se o arquivo data.json está disponível.</td></tr>`;
     }
   }
 
